@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cephfs-pvc
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: rook-cephfs
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: read-write-many
+  template:
+    metadata:
+      labels:
+        app: read-write-many
+    spec:
+      volumes:
+      - name: nginx-data
+        persistentVolumeClaim:
+          claimName: cephfs-pvc
+          readOnly: false
+      containers:
+      - image: nginx:latest
+        name: nginx
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - mountPath: "/data"
+          name: nginx-data
+          readOnly: false

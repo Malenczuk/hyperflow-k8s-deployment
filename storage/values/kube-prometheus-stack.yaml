@@ -1,0 +1,20 @@
+alertmanager:
+  enabled: false
+
+grafana:
+  nodeSelector:
+    nodetype: hfmaster
+
+prometheusOperator:
+  admissionWebhooks:
+    enabled: false
+    patch:
+      enabled: false
+
+  nodeSelector:
+    nodetype: hfmaster
+
+prometheus:
+  prometheusSpec:
+    nodeSelector:
+      nodetype: hfmaster

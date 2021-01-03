@@ -1,0 +1,7 @@
+
+nodeSelector:
+  nodetype: hfmaster
+
+csi:
+  # pluginNodeAffinity: "nodetype=storage"
+  provisionerNodeAffinity: "nodetype=storage"

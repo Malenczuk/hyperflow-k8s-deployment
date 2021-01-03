@@ -1,0 +1,108 @@
+apiVersion: ceph.rook.io/v1
+kind: CephCluster
+metadata:
+  name: rook-ceph
+  namespace: rook-ceph
+spec:
+  dataDirHostPath: /var/lib/rook
+  mon:
+    count: 3
+    allowMultiplePerNode: false
+    volumeClaimTemplate:
+      spec:
+        storageClassName: premium-rwo
+        resources:
+          requests:
+            storage: 20Gi
+  cephVersion:
+    image: ceph/ceph:v15.2.7
+    allowUnsupported: false
+  skipUpgradeChecks: false
+  continueUpgradeAfterChecksEvenIfNotHealthy: false
+  mgr:
+    modules:
+    - name: pg_autoscaler
+      enabled: true
+  dashboard:
+    enabled: true
+    ssl: true
+  crashCollector:
+    disable: false
+  storage:
+    storageClassDeviceSets:
+    - name: hyperflow
+      count: 3
+      portable: true
+      tuneDeviceClass: true
+      tuneFastDeviceClass: false
+      encrypted: false
+      placement:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: nodetype
+                operator: In
+                values:
+                - storage # node-label: nodetype
+        topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchExpressions:
+            - key: app
+              operator: In
+              values:
+              - rook-ceph-osd
+      preparePlacement:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: nodetype
+                operator: In
+                values:
+                - storage # node-label: nodetype
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - rook-ceph-osd
+                - key: app
+                  operator: In
+                  values:
+                  - rook-ceph-osd-prepare
+              topologyKey: kubernetes.io/hostname
+        topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchExpressions:
+            - key: app
+              operator: In
+              values:
+              - rook-ceph-osd-prepare
+      volumeClaimTemplates:
+      - metadata:
+          name: data
+        spec:
+          resources:
+            requests:
+              storage: 50Gi
+          storageClassName: premium-rwo
+          volumeMode: Block
+          accessModes:
+            - ReadWriteOnce
+  resources:
+  disruptionManagement:
+    managePodBudgets: false
+    osdMaintenanceTimeout: 30
+    pgHealthCheckTimeout: 0
+    manageMachineDisruptionBudgets: false
