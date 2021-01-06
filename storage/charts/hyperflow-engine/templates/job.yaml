@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: workflow-loader
+  annotations:
+    "helm.sh/hook": pre-install, pre-upgrade
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: db-migrate
+        image: "{{ .Values.workflow.image.repository }}:{{ .Values.workflow.image.tag }}"
+        imagePullPolicy: {{ .Values.workflow.image.pullPolicy }}
+        command:
+        - "/bin/sh"
+        - "-c"
+        - >
+          cp -vr {{ .Values.workflow.dataPath }}/* /workflow-data/{{ .Values.workflow.workPath }};
+        volumeMounts:
+        - mountPath: /workflow-data
+          name: workflow-data
+      volumes:
+      - name: workflow-data
+        persistentVolumeClaim:
+          claimName: hyperflow-pvc
+
