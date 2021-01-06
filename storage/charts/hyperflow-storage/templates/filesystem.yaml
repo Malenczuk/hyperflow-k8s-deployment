@@ -1,0 +1,79 @@
+{{- if .Values.ceph.enabled -}}
+apiVersion: ceph.rook.io/v1
+kind: CephFilesystem
+metadata:
+  name: {{ .Values.ceph.filesystem.name }}
+spec:
+  metadataPool:
+    failureDomain: {{ .Values.ceph.filesystem.metadataPool.failureDomain }}
+    replicated:
+      size: {{ .Values.ceph.filesystem.metadataPool.replicated.size }}
+      requireSafeReplicaSize: {{ .Values.ceph.filesystem.metadataPool.replicated.requireSafeReplicaSize }}
+    parameters:
+      compression_mode: {{ .Values.ceph.filesystem.metadataPool.parameters.compression_mode }}
+      {{- if .Values.ceph.filesystem.metadataPool.parameters.target_size_ratio }}
+      target_size_ratio: {{ .Values.ceph.filesystem.metadataPool.parameters.target_size_ratio }}
+      {{- end }}
+  dataPools:
+  {{- toYaml .Values.ceph.filesystem.dataPools | nindent 2 }}
+  preserveFilesystemOnDelete: {{ .Values.ceph.filesystem.preserveFilesystemOnDelete }}
+  metadataServer:
+    activeCount: {{ .Values.ceph.filesystem.metadataServer.activeCount }}
+    activeStandby: {{ .Values.ceph.filesystem.metadataServer.activeStandby }}
+    placement:
+      {{- if .Values.ceph.filesystem.metadataServer.placement.nodeAffinity }}
+      nodeAffinity: {{- toYaml .Values.ceph.filesystem.metadataServer.placement.nodeAffinity | nindent 8 }}
+      {{- end }}
+      {{- if .Values.ceph.filesystem.metadataServer.placement.topologySpreadConstraints }}
+      topologySpreadConstraints: {{- toYaml .Values.ceph.filesystem.metadataServer.placement.topologySpreadConstraints | nindent 6 }}
+      {{- end }}
+      {{- if .Values.ceph.filesystem.metadataServer.placement.tolerations }}
+      tolerations: {{- toYaml .Values.ceph.filesystem.metadataServer.placement.tolerations | nindent 6 }}
+      {{- end }}
+      {{- if .Values.ceph.filesystem.metadataServer.placement.podAffinity }}
+      podAffinity: {{- toYaml .Values.ceph.filesystem.metadataServer.placement.podAffinity | nindent 8 }}
+      {{- end }}
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+            - key: app
+              operator: In
+              values:
+              - rook-ceph-mds
+{{- /*    topologyKey: kubernetes.io/hostname will place MDS across different hosts */}}
+          topologyKey: kubernetes.io/hostname
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - rook-ceph-mds
+{{- /*      topologyKey: zone can be used to spread MDS across different AZ
+            Use <topologyKey: failure-domain.beta.kubernetes.io/zone> in k8s cluster if your cluster is v1.16 or lower
+            Use <topologyKey: topology.kubernetes.io/zone>  in k8s cluster is v1.17 or upper */}}
+            {{- if semverCompare "<1.17" .Capabilities.KubeVersion.Version }}
+            topologyKey: failure-domain.beta.kubernetes.io/zone
+            {{- else }}
+            topologyKey: topology.kubernetes.io/zone
+            {{- end }}
+
+    {{- if .Values.ceph.filesystem.metadataServer.annotations }}
+    annotations: {{- toYaml .Values.ceph.filesystem.metadataServer.annotations | nindent 6 }}
+    {{- end }}
+
+    {{- if .Values.ceph.filesystem.metadataServer.labels }}
+    labels: {{- toYaml .Values.ceph.filesystem.metadataServer.labels | nindent 6 }}
+    {{- end }}
+
+    {{- if .Values.ceph.filesystem.metadataServer.resources }}
+    resources: {{- toYaml .Values.ceph.filesystem.metadataServer.resources | nindent 6 }}
+    {{- end }}
+
+    {{- if .Values.ceph.filesystem.metadataServer.priorityClassName }}
+    priorityClassName: {{ .Values.ceph.filesystem.metadataServer.priorityClassName }}
+    {{- end }}
+{{- end -}}

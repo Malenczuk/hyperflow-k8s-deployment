@@ -1,0 +1,98 @@
+{{- if .Values.ceph.enabled -}}
+apiVersion: ceph.rook.io/v1
+kind: CephCluster
+metadata:
+  name: {{ .Values.ceph.cluster.name }}
+spec:
+  dataDirHostPath: {{ .Values.ceph.cluster.dataDirHostPath }}
+  mon:
+    count: {{ .Values.ceph.cluster.mon.count }}
+    allowMultiplePerNode: {{ .Values.ceph.cluster.mon.allowMultiplePerNode }}
+    volumeClaimTemplate: {{- toYaml .Values.ceph.cluster.mon.volumeClaimTemplate | nindent 6 }}
+  cephVersion:
+    image: {{ .Values.ceph.cluster.cephVersion.image }}
+    allowUnsupported: {{ .Values.ceph.cluster.cephVersion.allowUnsupported }}
+  skipUpgradeChecks:  {{ .Values.ceph.cluster.skipUpgradeChecks }}
+  continueUpgradeAfterChecksEvenIfNotHealthy: {{ .Values.ceph.cluster.continueUpgradeAfterChecksEvenIfNotHealthy }}
+  mgr:
+    modules: {{- toYaml .Values.ceph.cluster.mgr.modules | nindent 4 }}
+  dashboard:
+    enabled: {{ .Values.ceph.cluster.dashboard.enabled }}
+    ssl: {{ .Values.ceph.cluster.dashboard.ssl }}
+  crashCollector:
+    disable: {{ .Values.ceph.cluster.crashCollector.disable }}
+  storage:
+    storageClassDeviceSets: {{- range $name, $deviceSet := .Values.ceph.cluster.storage.storageClassDeviceSets }}
+    - name: {{ $name }}
+      count: {{ $deviceSet.count }}
+      portable: {{ $deviceSet.portable }}
+      tuneDeviceClass: {{ $deviceSet.tuneDeviceClass }}
+      tuneFastDeviceClass: {{ $deviceSet.tuneFastDeviceClass }}
+      encrypted: {{ $deviceSet.encrypted }}
+      placement:
+        {{- if $deviceSet.placement.nodeAffinity }}
+        nodeAffinity: {{- toYaml $deviceSet.placement.nodeAffinity | nindent 8 }}
+        {{- end }}
+        topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchExpressions:
+            - key: app
+              operator: In
+              values:
+              - rook-ceph-osd
+      preparePlacement:
+        {{- if $deviceSet.preparePlacement.nodeAffinity }}
+        nodeAffinity: {{- toYaml $deviceSet.preparePlacement.nodeAffinity | nindent 8 }}
+        {{- end }}
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - rook-ceph-osd
+                - key: app
+                  operator: In
+                  values:
+                  - rook-ceph-osd-prepare
+              topologyKey: kubernetes.io/hostname
+        topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchExpressions:
+            - key: app
+              operator: In
+              values:
+              - rook-ceph-osd-prepare
+      {{- if $deviceSet.resources }}
+      resources: {{- toYaml $deviceSet.resources | nindent 8 }}
+      {{- end }}
+
+      {{- if $deviceSet.volumeClaimTemplates }}
+      volumeClaimTemplates: {{- toYaml $deviceSet.volumeClaimTemplates | nindent 8 }}
+      {{- end }}
+
+      {{- if $deviceSet.schedulerName }}
+      schedulerName: {{ $deviceSet.schedulerName }}
+      {{- end }}
+    {{- end }}
+  {{- if .Values.ceph.cluster.resources }}
+  resources: {{- toYaml .Values.ceph.cluster.resources | nindent 4 }}
+  {{- end }}
+  disruptionManagement:
+    managePodBudgets: {{ .Values.ceph.cluster.disruptionManagement.managePodBudgets }}
+    osdMaintenanceTimeout: {{ .Values.ceph.cluster.disruptionManagement.osdMaintenanceTimeout }}
+    pgHealthCheckTimeout: {{ .Values.ceph.cluster.disruptionManagement.pgHealthCheckTimeout }}
+    manageMachineDisruptionBudgets: {{ .Values.ceph.cluster.disruptionManagement.manageMachineDisruptionBudgets }}
+    {{- if .Values.ceph.cluster.disruptionManagement.machineDisruptionBudgetNamespace }}
+    machineDisruptionBudgetNamespace: {{ .Values.ceph.cluster.disruptionManagement.machineDisruptionBudgetNamespace }}
+    {{- end }}
+{{- end -}}

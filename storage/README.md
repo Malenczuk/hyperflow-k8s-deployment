@@ -81,23 +81,12 @@ helm repo add rook-release https://charts.rook.io/release
 
 ```bash
 kubectl create namespace rook-ceph
-helm install rook-ceph rook-release/rook-ceph \
+
+helm dependency update storage/charts/hyperflow-storage
+
+helm install hyperflow-storage storage/charts/hyperflow-storage \
     --namespace rook-ceph \
-    -f storage/values/rook-ceph.yaml
-```
-
-### Ceph Configuration
-
-```bash
-# https://github.com/rook/rook/blob/master/Documentation/ceph-cluster-crd.md#pvc-based-cluster
-kubectl create --namespace rook-ceph -f storage/values/cluster.yaml
-```
-
-```bash
-# https://github.com/rook/rook/blob/master/Documentation/ceph-filesystem-crd.md
-kubectl create --namespace rook-ceph -f storage/values/filesystem.yaml
-
-kubectl create --namespace rook-ceph -f storage/values/storageclass.yaml
+    -f storage/values/hyperflow-storage.yaml
 ```
 
 ```

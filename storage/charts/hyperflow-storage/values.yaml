@@ -1,0 +1,263 @@
+# Default values for hyperflow-storage.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+
+# This key configures Rook-Ceph subchart
+# Ref: https://github.com/rook/rook/blob/master/Documentation/helm-operator.md
+rook-ceph:
+
+  serviceMonitor:
+    enabled: false
+    #selector:
+    #  release: prometheus
+    #namespace: monitoring
+    #additionalLabels: {}
+
+  csi:
+    serviceMonitor:
+      enabled: false
+      #selector:
+      #  release: prometheus
+      #namespace: monitoring
+      #additionalLabels: { }
+
+ceph:
+  enabled: true
+
+  # Ref: https://github.com/rook/rook/blob/master/Documentation/ceph-cluster-crd.md
+  cluster:
+    name: rook-ceph
+
+    dataDirHostPath: /var/lib/rook
+
+    mon:
+      # Set the number of mons to be started. Must be an odd number, and is generally recommended to be 3.
+      count: 3
+      # The mons should be on unique nodes. For production, at least 3 nodes are recommended for this reason.
+      # Mons should only be allowed on the same node for test environments where data loss is acceptable.
+      allowMultiplePerNode: false
+      # A volume claim template can be specified in which case new monitors (and
+      # monitors created during fail over) will construct a PVC based on the
+      # template for the monitor's primary storage. Changes to the template do not
+      # affect existing monitors. Log data is stored on the HostPath under
+      # dataDirHostPath. If no storage requirement is specified, a default storage
+      # size appropriate for monitor data will be used.
+      volumeClaimTemplate:
+        spec:
+          storageClassName: premium-rwo
+          resources:
+            requests:
+              storage: 10Gi
+
+    cephVersion:
+      image: ceph/ceph:v15.2.7
+      allowUnsupported: false
+
+    skipUpgradeChecks: false
+
+    continueUpgradeAfterChecksEvenIfNotHealthy: false
+
+    mgr:
+      modules:
+        - name: pg_autoscaler
+          enabled: true
+    dashboard:
+      enabled: true
+      ssl: true
+    crashCollector:
+      disable: false
+
+    storage:
+      storageClassDeviceSets:
+        hyperflow:
+          # The number of OSDs to create from this device set
+          count: 3
+
+          # IMPORTANT: If volumes specified by the storageClassName are not portable across nodes
+          # this needs to be set to false. For example, if using the local storage provisioner
+          # this should be false.
+          portable: true
+
+          # Certain storage class in the Cloud are slow
+          # Rook can configure the OSD running on PVC to accommodate that by tuning some of the Ceph internal
+          # Currently, "gp2" has been identified as such
+          tuneDeviceClass: true
+
+          # Certain storage class in the Cloud are fast
+          # Rook can configure the OSD running on PVC to accommodate that by tuning some of the Ceph internal
+          # Currently, "managed-premium" has been identified as such
+          tuneFastDeviceClass: false
+
+          # whether to encrypt the deviceSet or not
+          encrypted: false
+
+          placement: {}
+            #nodeAffinity:
+            #  requiredDuringSchedulingIgnoredDuringExecution:
+            #    nodeSelectorTerms:
+            #    - matchExpressions:
+            #      - key: nodetype
+            #        operator: In
+            #        values:
+            #        - storage
+
+          preparePlacement: {}
+            #nodeAffinity:
+            #  requiredDuringSchedulingIgnoredDuringExecution:
+            #    nodeSelectorTerms:
+            #    - matchExpressions:
+            #      - key: nodetype
+            #        operator: In
+            #        values:
+            #        - storage
+
+          resources: {}
+          # These are the OSD daemon limits. For OSD prepare limits, see the separate section below for "prepareosd" resources
+          #   limits:
+          #     cpu: "500m"
+          #     memory: "4Gi"
+          #   requests:
+          #     cpu: "500m"
+          #     memory: "4Gi"
+
+          volumeClaimTemplates: []
+          #- metadata:
+          #    name: data
+          #    # if you are looking at giving your OSD a different CRUSH device class than the one detected by Ceph
+          #    #annotations:
+          #    #  crushDeviceClass: hybrid
+          #  spec:
+          #    resources:
+          #      requests:
+          #        storage: 50Gi
+          #    # IMPORTANT: Change the storage class depending on your environment (e.g. local-storage, gp2)
+          #    storageClassName: premium-rwo
+          #    volumeMode: Block
+          #    accessModes:
+          #    - ReadWriteOnce
+
+          # Scheduler name for OSD pod placement
+          #schedulerName:
+
+    resources: {}
+    #  prepareosd:
+    #    limits:
+    #      cpu: "200m"
+    #      memory: "200Mi"
+    #   requests:
+    #      cpu: "200m"
+    #      memory: "200Mi"
+
+    disruptionManagement:
+      managePodBudgets: false
+      osdMaintenanceTimeout: 30
+      pgHealthCheckTimeout: 0
+      manageMachineDisruptionBudgets: false
+
+  # Ref: https://github.com/rook/rook/blob/master/Documentation/ceph-filesystem.md
+  # Ref: https://github.com/rook/rook/blob/master/Documentation/ceph-filesystem-crd.md
+  filesystem:
+    name: hyperflowfs
+
+    # The metadata pool spec
+    metadataPool:
+      failureDomain: host
+
+      replicated:
+        size: 3
+        requireSafeReplicaSize: true
+
+      parameters:
+        # Inline compression mode for the data pool
+        # Further reference: https://docs.ceph.com/docs/nautilus/rados/configuration/bluestore-config-ref/#inline-compression
+        compression_mode: none
+
+        # gives a hint (%) to Ceph in terms of expected consumption of the total cluster capacity of a given pool
+        # for more info: https://docs.ceph.com/docs/master/rados/operations/placement-groups/#specifying-expected-pool-size
+        #target_size_ratio: ".5"
+
+    # The list of data pool specs. Can use replication or erasure coding.
+    dataPools:
+    - failureDomain: host
+
+      replicated:
+        size: 3
+        requireSafeReplicaSize: true
+
+      parameters:
+        # Inline compression mode for the data pool
+        # Further reference: https://docs.ceph.com/docs/nautilus/rados/configuration/bluestore-config-ref/#inline-compression
+        compression_mode: none
+
+        # gives a hint (%) to Ceph in terms of expected consumption of the total cluster capacity of a given pool
+        # for more info: https://docs.ceph.com/docs/master/rados/operations/placement-groups/#specifying-expected-pool-size
+        #target_size_ratio: ".5"
+
+    preserveFilesystemOnDelete: true
+
+    metadataServer:
+      # The number of active MDS instances
+      activeCount: 1
+
+      # Whether each active MDS instance will have an active standby with a warm metadata cache for faster failover.
+      # If false, standbys will be available, but will not have a warm cache.
+      activeStandby: true
+
+      # The affinity rules to apply to the mds deployment
+      placement: {}
+        #nodeAffinity:
+        #  requiredDuringSchedulingIgnoredDuringExecution:
+        #    nodeSelectorTerms:
+        #    - matchExpressions:
+        #      - key: nodetype
+        #        operator: In
+        #        values:
+        #        - storage
+        #topologySpreadConstraints:
+        #tolerations:
+        #  - key: mds-node
+        #    operator: Exists
+        #podAffinity:
+
+      # A key/value list of annotations
+      annotations: {}
+
+      # A key/value list of labels
+      labels: {}
+
+      resources: {}
+      # The requests and limits set here, allow the filesystem MDS Pod(s) to use half of one CPU core and 1 gigabyte of memory
+      #  limits:
+      #    cpu: "500m"
+      #    memory: "1024Mi"
+      #  requests:
+      #    cpu: "500m"
+      #    memory: "1024Mi"
+
+      # priorityClassName: my-priority-class
+
+  storageclass:
+    name: rook-cephfs
+
+    # Ceph pool into which the volume shall be created
+    # Required for provisionVolume: "true"
+    pool: hyperflowfs-data0
+
+    # Root path of an existing CephFS volume
+    # Required for provisionVolume: "false"
+    #rootPath: /absolute/path
+
+    # (optional) The driver can use either ceph-fuse (fuse) or ceph kernel client (kernel)
+    # If omitted, default volume mounter will be used - this is determined by probing for ceph-fuse
+    # or by setting the default mounter explicitly via --volumemounter command-line argument.
+    #mounter: kernel
+
+    reclaimPolicy: Delete
+
+    allowVolumeExpansion: true
+
+    mountOptions: []
+    #- debug
+
+

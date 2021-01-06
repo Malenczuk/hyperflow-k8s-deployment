@@ -1,0 +1,68 @@
+
+rook-ceph:
+  nodeSelector:
+    nodetype: hfmaster
+
+  serviceMonitor:
+    enabled: true
+    selector:
+      release: prometheus
+
+  csi:
+    provisionerNodeAffinity: nodetype=storage
+
+    serviceMonitor:
+      enabled: true
+      selector:
+        release: prometheus
+
+ceph:
+  enabled: true
+
+  cluster:
+    storage:
+      storageClassDeviceSets:
+        hyperflow:
+          placement:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                - matchExpressions:
+                  - key: nodetype
+                    operator: In
+                    values:
+                    - storage
+
+          preparePlacement:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                - matchExpressions:
+                  - key: nodetype
+                    operator: In
+                    values:
+                    - storage
+
+          volumeClaimTemplates:
+          - metadata:
+              name: data
+            spec:
+              resources:
+                requests:
+                  storage: 50Gi
+              storageClassName: premium-rwo
+              volumeMode: Block
+              accessModes:
+                - ReadWriteOnce
+
+  filesystem:
+    metadataServer:
+      placement:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: nodetype
+                operator: In
+                values:
+                - storage

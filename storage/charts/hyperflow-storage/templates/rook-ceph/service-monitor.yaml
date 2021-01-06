@@ -1,0 +1,31 @@
+{{- $rookCeph := index .Values "rook-ceph" -}}
+{{- if $rookCeph.serviceMonitor.enabled -}}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: rook-ceph-mgr
+  {{- if $rookCeph.csi.serviceMonitor.namespace }}
+  namespace: {{ $rookCeph.csi.serviceMonitor.namespace }}
+  {{- end }}
+  labels:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    {{- if $rookCeph.csi.serviceMonitorselector }}
+    {{- toYaml $rookCeph.csi.serviceMonitor.selector | nindent 4 }}
+    {{- end }}
+    {{- if $rookCeph.csi.serviceMonitor.additionalLabels }}
+    {{- toYaml $rookCeph.csi.serviceMonitor.additionalLabels | nindent 4 }}
+    {{- end }}
+spec:
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      app: rook-ceph-mgr
+      rook_cluster: rook-ceph
+  endpoints:
+  - port: http-metrics
+    path: /metrics
+    interval: 5s
+{{- end -}}
