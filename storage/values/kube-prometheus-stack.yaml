@@ -10,6 +10,8 @@ prometheusOperator:
     enabled: false
     patch:
       enabled: false
+  tls:
+    enabled: false
 
   nodeSelector:
     nodetype: hfmaster

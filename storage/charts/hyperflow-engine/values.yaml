@@ -33,9 +33,9 @@ containers:
 
 workflow:
   image:
-    repository: matplinta/montage-workflow-data
-    tag: montage0.25-v2
-    pullPolicy: IfAbsent
+    repository: hyperflowwms/montage2-workflow-data
+    tag: montage2-2mass-025-latest
+    pullPolicy: IfNotPresent
 
   dataPath: "/data"
   workPath: ""
