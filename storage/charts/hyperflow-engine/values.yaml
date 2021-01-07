@@ -42,6 +42,7 @@ workflow:
 
   pvc:
     name: hyperflow-pvc
+    create: true
     storage: 100Gi
     storageClass: rook-cephfs
 

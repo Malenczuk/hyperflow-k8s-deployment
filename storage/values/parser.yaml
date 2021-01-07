@@ -1,0 +1,11 @@
+
+nodeSelector: null
+
+volumeMounts:
+  - mountPath: /work_dir
+    name: workflow-data
+
+volumes:
+  - name: workflow-data
+    persistentVolumeClaim:
+      claimName: hyperflow-pvc
