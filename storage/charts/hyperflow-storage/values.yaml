@@ -7,6 +7,9 @@
 # Ref: https://github.com/rook/rook/blob/master/Documentation/helm-operator.md
 rook-ceph:
 
+  crds:
+    enabled: false
+
   serviceMonitor:
     enabled: false
     #selector:
