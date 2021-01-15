@@ -18,8 +18,8 @@ spec:
       - name: hyperflow
         image: {{ .Values.containers.hyperflow.image }}
         imagePullPolicy: Always
-        {{- with .Values.resources }}
-        resources: {{ . | toYaml | nindent 10 }}
+        {{- if .Values.resources }}
+        resources: {{- toYaml .Values.resources | nindent 10 }}
         {{- end }}
         env:
         - name: REDIS_URL

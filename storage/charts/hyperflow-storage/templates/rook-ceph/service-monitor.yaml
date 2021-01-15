@@ -10,7 +10,7 @@ metadata:
   labels:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
-    {{- if $rookCeph.csi.serviceMonitorselector }}
+    {{- if $rookCeph.csi.serviceMonitor.selector }}
     {{- toYaml $rookCeph.csi.serviceMonitor.selector | nindent 4 }}
     {{- end }}
     {{- if $rookCeph.csi.serviceMonitor.additionalLabels }}

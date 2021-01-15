@@ -5,6 +5,9 @@ grafana:
   nodeSelector:
     nodetype: hfmaster
 
+coreDns:
+  enabled: false
+
 prometheusOperator:
   admissionWebhooks:
     enabled: false
@@ -20,3 +23,12 @@ prometheus:
   prometheusSpec:
     nodeSelector:
       nodetype: hfmaster
+
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: standard-rwo
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
