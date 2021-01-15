@@ -25,5 +25,5 @@ spec:
       volumes:
       - name: workflow-data
         persistentVolumeClaim:
-          claimName: hyperflow-pvc
+          claimName: {{ .Values.workflow.claimName }}
 

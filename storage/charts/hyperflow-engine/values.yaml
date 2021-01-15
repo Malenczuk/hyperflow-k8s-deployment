@@ -36,6 +36,7 @@ workflow:
     repository: hyperflowwms/montage2-workflow-data
     tag: montage2-2mass-025-latest
     pullPolicy: IfNotPresent
+    claimName: hyperflow-pvc
 
   dataPath: "/data"
   workPath: ""
