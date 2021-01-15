@@ -25,5 +25,5 @@ spec:
       volumes:
       - name: workflow-data
         persistentVolumeClaim:
-          claimName: {{ .Values.workflow.claimName }}
+          claimName: {{ .Values.workflow.pvc.name }}
 
